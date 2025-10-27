@@ -1,35 +1,231 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useMemo, useState } from "react";
+import "./app.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function ASAControlApp() {
+    const API = import.meta.env.VITE_ASA_API_URL || "http://localhost:3001";
+    const API_KEY = import.meta.env.VITE_ASA_API_KEY || "supersecret";
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    const headers = useMemo(
+        () => ({
+            "Content-Type": "application/json",
+            "x-api-key": API_KEY,
+        }),
+        [API_KEY]
+    );
+
+    const [status, setStatus] = useState({ running: false, pid: null, via: "" });
+    const [busy, setBusy] = useState(false);
+    const [sessionName, setSessionName] = useState("My ASA Server");
+    const [mods, setMods] = useState("123456,987654");
+    const [noBE, setNoBE] = useState(true);
+    const [rconCmd, setRconCmd] = useState("");
+    const [toast, setToast] = useState("");
+
+    async function api(path, opts = {}) {
+        const r = await fetch(`${API}${path}`, { ...opts, headers });
+        if (!r.ok) {
+            const text = await r.text();
+            throw new Error(text || r.statusText);
+        }
+        return r.json();
+    }
+
+    async function refresh() {
+        try {
+            const j = await api("/status");
+            setStatus({ running: !!j.running, pid: j.pid || null, via: j.via || "" });
+        } catch (e) {
+            setToast(`Status error: ${e.message}`);
+        }
+    }
+
+    async function start() {
+        setBusy(true);
+        try {
+            const body = { SessionName: sessionName, Mods: mods, NoBattlEye: noBE };
+            await api("/start", { method: "POST", body: JSON.stringify(body) });
+            setToast("Server starting…");
+            setTimeout(refresh, 1200);
+        } catch (e) {
+            setToast(`Start error: ${e.message}`);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function stop() {
+        setBusy(true);
+        try {
+            await api("/stop", { method: "POST" });
+            setToast("Server stopping…");
+            setTimeout(refresh, 1500);
+        } catch (e) {
+            setToast(`Stop error: ${e.message}`);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function restart() {
+        setBusy(true);
+        try {
+            await api("/restart", { method: "POST" });
+            setToast("Restart requested…");
+            setTimeout(refresh, 2000);
+        } catch (e) {
+            setToast(`Restart error: ${e.message}`);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function sendRcon() {
+        if (!rconCmd.trim()) return;
+        setBusy(true);
+        try {
+            const j = await api("/rcon", {
+                method: "POST",
+                body: JSON.stringify({ command: rconCmd }),
+            });
+            setToast(j.output || "Command sent");
+        } catch (e) {
+            setToast(`RCON error: ${e.message}`);
+        } finally {
+            setBusy(false);
+            setRconCmd("");
+        }
+    }
+
+    useEffect(() => {
+        refresh();
+        const id = setInterval(refresh, 5000);
+        return () => clearInterval(id);
+    }, []);
+
+    return (
+        <div className="page">
+            <header className="header">
+                <h1>ASA Server Control</h1>
+                <p className="subtle">API: {API}</p>
+            </header>
+
+            {/* Status */}
+            <section className="card">
+                <div className="row between">
+                    <div>
+                        <div className="label">Status</div>
+                        <div className="status-line">
+                            {status.running ? (
+                                <b className="ok">Running</b>
+                            ) : (
+                                <b className="bad">Stopped</b>
+                            )}
+                            {status.pid && <span className="muted"> (pid {status.pid})</span>}
+                            {status.via && <span className="muted"> — via {status.via}</span>}
+                        </div>
+                    </div>
+                    <div className="actions">
+                        <button className="btn" onClick={refresh} disabled={busy}>
+                            Refresh
+                        </button>
+                        {!status.running ? (
+                            <button
+                                className="btn success"
+                                onClick={start}
+                                disabled={busy}
+                                title="Start"
+                            >
+                                Start
+                            </button>
+                        ) : (
+                            <button
+                                className="btn danger"
+                                onClick={stop}
+                                disabled={busy}
+                                title="Stop"
+                            >
+                                Stop
+                            </button>
+                        )}
+                        <button
+                            className="btn primary"
+                            onClick={restart}
+                            disabled={busy || !status.running}
+                            title="Restart"
+                        >
+                            Restart
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            {/* Start Options */}
+            <section className="card">
+                <h2>Start Options</h2>
+                <label className="field">
+                    <span>Session Name</span>
+                    <input
+                        className="input"
+                        value={sessionName}
+                        onChange={(e) => setSessionName(e.target.value)}
+                    />
+                </label>
+                <label className="field">
+                    <span>Mods (comma-separated IDs)</span>
+                    <input
+                        className="input"
+                        value={mods}
+                        onChange={(e) => setMods(e.target.value)}
+                    />
+                </label>
+                <label className="checkbox">
+                    <input
+                        type="checkbox"
+                        checked={noBE}
+                        onChange={(e) => setNoBE(e.target.checked)}
+                    />
+                    <span>Disable BattlEye</span>
+                </label>
+                <div className="actions">
+                    <button className="btn success" onClick={start} disabled={busy}>
+                        Start with Options
+                    </button>
+                </div>
+            </section>
+
+            {/* RCON */}
+            <section className="card">
+                <h2>RCON Quick Command</h2>
+                <div className="row">
+                    <input
+                        className="input flex1"
+                        placeholder="e.g. saveworld"
+                        value={rconCmd}
+                        onChange={(e) => setRconCmd(e.target.value)}
+                    />
+                    <button
+                        className="btn dark"
+                        onClick={sendRcon}
+                        disabled={busy || !rconCmd.trim()}
+                    >
+                        Send
+                    </button>
+                </div>
+                <p className="hint">
+                    Requires <code>/rcon</code> endpoint and <code>RCONEnabled=True</code>{' '}
+                    in your server config.
+                </p>
+            </section>
+
+            {/* Toast */}
+            <div
+                className={`toast ${toast ? "show" : ""}`}
+                role="status"
+                aria-live="polite"
+                onAnimationEnd={() => setTimeout(() => setToast(""), 2200)}
+            >
+                {toast}
+            </div>
+        </div>
+    );
 }
-
-export default App

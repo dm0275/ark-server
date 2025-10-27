@@ -1,42 +1,184 @@
-#root {
-  max-width: 1280px;
+/* Basic, readable UI with light/dark support and good contrast */
+
+:root {
+  --bg: #f6f7f9;
+  --fg: #0f172a;
+  --muted: #6b7280;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+  --btn: #f3f4f6;
+  --btn-fg: #111827;
+  --primary: #2563eb;
+  --primary-fg: #ffffff;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --ok: #16a34a;
+  --bad: #dc2626;
+  --dark: #374151;
+  --radius: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --fg: #e5e7eb;
+    --muted: #9aa1ad;
+    --card: #171a21;
+    --border: #222632;
+    --btn: #202532;
+    --btn-fg: #e5e7eb;
+    --primary: #4f83ff;
+    --success: #22c55e;
+    --danger: #ff5d5d;
+    --ok: #34d399;
+    --bad: #f87171;
+    --dark: #2e3440;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.page {
+  max-width: 860px;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  padding: 28px 20px 64px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.header h1 {
+  margin: 0 0 6px;
+  font-size: 32px;
+  letter-spacing: -0.02em;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.subtle {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .card {
-  padding: 2em;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 14px 0;
+  box-shadow: var(--shadow);
 }
 
-.read-the-docs {
-  color: #888;
+h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
 }
+
+.label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.status-line {
+  font-size: 16px;
+}
+
+.ok { color: var(--ok); }
+.bad { color: var(--bad); }
+.muted { color: var(--muted); }
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.row.between {
+  justify-content: space-between;
+}
+
+.flex1 { flex: 1; }
+
+.actions { display: flex; gap: 8px; }
+
+.btn {
+  background: var(--btn);
+  color: var(--btn-fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn:hover { filter: brightness(0.98); }
+.btn:active { filter: brightness(0.95); }
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.primary { background: var(--primary); color: var(--primary-fg); border-color: transparent; }
+.btn.success { background: var(--success); color: #0b1f10; border-color: transparent; }
+.btn.danger  { background: var(--danger);  color: #fff; border-color: transparent; }
+.btn.dark    { background: var(--dark);    color: #fff; border-color: transparent; }
+
+.field { display: grid; gap: 6px; margin: 8px 0; }
+.field > span { color: var(--muted); font-size: 12px; }
+
+.input {
+  background: #fff;
+  color: #111827;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  outline: none;
+}
+@media (prefers-color-scheme: dark) {
+  .input {
+    background: #0e1117;
+    color: var(--fg);
+    border-color: #2b3241;
+  }
+}
+.input::placeholder { color: #9ca3af; }
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  color: var(--fg);
+  user-select: none;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+.toast.show { opacity: 0.95; }
