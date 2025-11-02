@@ -256,8 +256,10 @@ def start_server(body: StartBody, x_api_key: Optional[str] = Header(default=None
     return {"ok": True, "pid": proc.pid(), "args": args}
 
 @app.post("/stop")
-def stop_server(body: StopBody, x_api_key: Optional[str] = Header(default=None)):
+def stop_server(body: StopBody | None = None, x_api_key: Optional[str] = Header(default=None)):
     require_key(x_api_key)
+    if body is None:
+        body = StopBody()
 
     if not proc.is_running():
         return {"ok": True, "already": "stopped"}
