@@ -44,11 +44,14 @@ DEFAULTS: dict[str, Any] = {
 
 # RCON config (must match server settings)
 RCON_HOST = os.getenv("ASA_RCON_HOST", "127.0.0.1")
+DEFAULT_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
 ALLOWED_ORIGINS = [
     origin.strip()
-    for origin in os.getenv("ASA_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    for origin in os.getenv("ASA_ALLOWED_ORIGINS", DEFAULT_ORIGINS).split(",")
     if origin.strip()
 ]
+ALLOWED_ORIGIN_REGEX = os.getenv("ASA_ALLOWED_ORIGIN_REGEX", "")
+ALLOW_ALL_ORIGINS = os.getenv("ASA_ALLOW_ALL_ORIGINS", "").lower() in {"1", "true", "yes"}
 
 LOG_LEVEL = os.getenv("ASA_LOG_LEVEL", "INFO").upper()
 root_logger = logging.getLogger()
@@ -68,13 +71,21 @@ if not logger.handlers:
     logger.addHandler(stream_handler)
 logger.propagate = True
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS if ALLOWED_ORIGINS else ["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-    allow_credentials=False,
-)
+cors_kwargs: dict[str, Any] = {
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+    "allow_credentials": False,
+}
+if ALLOW_ALL_ORIGINS:
+    cors_kwargs["allow_origins"] = ["*"]
+elif ALLOWED_ORIGIN_REGEX:
+    cors_kwargs["allow_origin_regex"] = ALLOWED_ORIGIN_REGEX
+elif ALLOWED_ORIGINS:
+    cors_kwargs["allow_origins"] = ALLOWED_ORIGINS
+else:
+    cors_kwargs["allow_origins"] = ["*"]
+
+app.add_middleware(CORSMiddleware, **cors_kwargs)
 
 
 @app.middleware("http")
