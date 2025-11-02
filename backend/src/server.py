@@ -16,9 +16,9 @@ app = FastAPI(title="ASA Control API")
 # --------------------
 # Config (env overrides)
 # --------------------
-API_KEY       = os.getenv("ASA_API_KEY", "change-me")   # simple auth for your React app
-WORKING_DIR   = Path(os.getenv("ASA_WORKING_DIR", r"E:\arkascendedserver\ShooterGame\Binaries\Win64"))
-EXE_PATH      = WORKING_DIR / "ArkAscendedServer.exe"
+API_KEY = os.getenv("ASA_API_KEY", "change-me")  # simple auth for your React app
+WORKING_DIR = Path(os.getenv("ASA_WORKING_DIR", r"E:\arkascendedserver\ShooterGame\Binaries\Win64"))
+EXE_PATH = WORKING_DIR / "ArkAscendedServer.exe"
 
 # Defaults (can be overridden by /start body)
 DEFAULTS = {
@@ -27,12 +27,12 @@ DEFAULTS = {
     "MaxPlayers": 16,
     "GamePort": 7777,
     "QueryPort": 27015,
-    "RCONPort": 27020,                 # set to None to omit
+    "RCONPort": 27020,  # set to None to omit
     "ServerPassword": "",
     "ServerAdminPassword": "ChangeMeAdmin!",
     "NoBattlEye": True,
-    "Mods": [],                        # e.g. ["123","456"]
-    "ExtraArgs": ["-server","-log"],
+    "Mods": [],  # e.g. ["123", "456"]
+    "ExtraArgs": ["-server", "-log"],
 }
 
 # RCON config (must match server settings)
@@ -177,14 +177,14 @@ def stop_server(body: StopBody, x_api_key: Optional[str] = Header(default=None))
         return {"ok": True, "already": "stopped"}
 
     # Try graceful RCON if we know the port/password
-    rcon_port = body.RconPort or (DEFAULTS["RCONPort"] if DEFAULTS["RCONPort"] is not None else None)
+    rcon_port = body.RconPort if body.RconPort is not None else DEFAULTS["RCONPort"]
     rcon_pass = DEFAULTS["ServerAdminPassword"]
     if rcon_port is not None and rcon_pass:
         try:
             rcon_send("saveworld", rcon_port, rcon_pass)
-            rcon_send("DoExit",    rcon_port, rcon_pass)
+            rcon_send("DoExit", rcon_port, rcon_pass)
             return {"ok": True, "method": "rcon"}
-        except Exception as e:
+        except Exception:
             # fall through to kill
             pass
 
@@ -205,22 +205,22 @@ def restart(x_api_key: Optional[str] = Header(default=None)):
             # graceful restart via RCON if possible
             if DEFAULTS["RCONPort"] is not None and DEFAULTS["ServerAdminPassword"]:
                 rcon_send("saveworld", DEFAULTS["RCONPort"], DEFAULTS["ServerAdminPassword"])
-                rcon_send("DoExit",    DEFAULTS["RCONPort"], DEFAULTS["ServerAdminPassword"])
+                rcon_send("DoExit", DEFAULTS["RCONPort"], DEFAULTS["ServerAdminPassword"])
         except Exception:
             proc.kill()
     # start with defaults again
-    args = build_args(**{
-        "Map": DEFAULTS["Map"],
-        "SessionName": DEFAULTS["SessionName"],
-        "MaxPlayers": DEFAULTS["MaxPlayers"],
-        "GamePort": DEFAULTS["GamePort"],
-        "QueryPort": DEFAULTS["QueryPort"],
-        "RCONPort": DEFAULTS["RCONPort"],
-        "ServerPassword": DEFAULTS["ServerPassword"],
-        "ServerAdminPassword": DEFAULTS["ServerAdminPassword"],
-        "NoBattlEye": DEFAULTS["NoBattlEye"],
-        "Mods": DEFAULTS["Mods"],
-        "ExtraArgs": DEFAULTS["ExtraArgs"],
-    })
+    args = build_args(
+        Map=DEFAULTS["Map"],
+        SessionName=DEFAULTS["SessionName"],
+        MaxPlayers=DEFAULTS["MaxPlayers"],
+        GamePort=DEFAULTS["GamePort"],
+        QueryPort=DEFAULTS["QueryPort"],
+        RCONPort=DEFAULTS["RCONPort"],
+        ServerPassword=DEFAULTS["ServerPassword"],
+        ServerAdminPassword=DEFAULTS["ServerAdminPassword"],
+        NoBattlEye=DEFAULTS["NoBattlEye"],
+        Mods=DEFAULTS["Mods"],
+        ExtraArgs=DEFAULTS["ExtraArgs"],
+    )
     proc.start(args)
     return {"ok": True, "pid": proc.pid()}
