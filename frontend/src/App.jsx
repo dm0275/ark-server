@@ -4,6 +4,14 @@ import "./app.css";
 export default function ASAControlApp() {
     const API = import.meta.env.VITE_ASA_API_URL || "http://localhost:8000";
     const API_KEY = import.meta.env.VITE_ASA_API_KEY || "supersecret";
+    const DEFAULT_SERVER_PASSWORD =
+        import.meta.env.VITE_ASA_SERVER_PASSWORD !== undefined
+            ? import.meta.env.VITE_ASA_SERVER_PASSWORD
+            : "";
+    const DEFAULT_ADMIN_PASSWORD =
+        import.meta.env.VITE_ASA_ADMIN_PASSWORD !== undefined
+            ? import.meta.env.VITE_ASA_ADMIN_PASSWORD
+            : "ChangeMeAdmin!";
 
     const headers = useMemo(
         () => ({
@@ -17,6 +25,9 @@ export default function ASAControlApp() {
     const [busy, setBusy] = useState(false);
     const [sessionName, setSessionName] = useState("MyASAServer");
     const [mods, setMods] = useState("929578,953154,934231,1061361");
+    const [serverPassword, setServerPassword] = useState(DEFAULT_SERVER_PASSWORD);
+    const [adminPassword, setAdminPassword] = useState(DEFAULT_ADMIN_PASSWORD);
+    const [maxPlayers, setMaxPlayers] = useState(16);
     const [noBE, setNoBE] = useState(true);
     const [rconCmd, setRconCmd] = useState("");
     const [toast, setToast] = useState("");
@@ -42,7 +53,14 @@ export default function ASAControlApp() {
     async function start() {
         setBusy(true);
         try {
-            const body = { SessionName: sessionName, Mods: mods, NoBattlEye: noBE };
+            const body = {
+                SessionName: sessionName,
+                Mods: mods,
+                NoBattlEye: noBE,
+                MaxPlayers: Number(maxPlayers) || 0,
+                ServerPassword: serverPassword,
+                ServerAdminPassword: adminPassword,
+            };
             await api("/start", { method: "POST", body: JSON.stringify(body) });
             setToast("Server starting…");
             setTimeout(refresh, 1200);
@@ -176,6 +194,36 @@ export default function ASAControlApp() {
                         className="input"
                         value={mods}
                         onChange={(e) => setMods(e.target.value)}
+                    />
+                </label>
+                <label className="field">
+                    <span>Server Password (optional)</span>
+                    <input
+                        className="input"
+                        type="password"
+                        value={serverPassword}
+                        onChange={(e) => setServerPassword(e.target.value)}
+                        placeholder="Leave blank for none"
+                    />
+                </label>
+                <label className="field">
+                    <span>Admin Password</span>
+                    <input
+                        className="input"
+                        type="password"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                    />
+                </label>
+                <label className="field">
+                    <span>Max Players</span>
+                    <input
+                        className="input"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={maxPlayers}
+                        onChange={(e) => setMaxPlayers(e.target.value)}
                     />
                 </label>
                 <label className="checkbox">
