@@ -35,13 +35,25 @@ function Ensure-PortRule {
 
   $existing = Get-NetFirewallRule -DisplayName $RuleName -ErrorAction SilentlyContinue
   if ($existing) {
-    Write-Host "Firewall rule '$RuleName' already exists; ensuring port details..."
-    Set-NetFirewallRule -DisplayName $RuleName -Direction Inbound -Action Allow -Protocol TCP | Out-Null
-    Set-NetFirewallPortFilter -AssociatedNetFirewallRule $existing -Protocol TCP -LocalPort $Port | Out-Null
-  } else {
-    Write-Host "Creating firewall rule '$RuleName' for TCP port $Port ..."
-    New-NetFirewallRule -DisplayName $RuleName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port | Out-Null
+    $portFilters = $existing | Get-NetFirewallPortFilter
+    $hasPort = $false
+    foreach ($filter in $portFilters) {
+      if ($filter.Protocol -eq "TCP" -and "$($filter.LocalPort)" -eq "$Port") {
+        $hasPort = $true
+        break
+      }
+    }
+    if ($hasPort) {
+      Write-Host "Firewall rule '$RuleName' already allows TCP port $Port."
+      return
+    }
+
+    Write-Host "Firewall rule '$RuleName' exists with different port; recreating for port $Port ..."
+    $existing | Remove-NetFirewallRule
   }
+
+  Write-Host "Creating firewall rule '$RuleName' for TCP port $Port ..."
+  New-NetFirewallRule -DisplayName $RuleName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port | Out-Null
 }
 
 Assert-Admin
