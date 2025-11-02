@@ -15,8 +15,8 @@ export default function ASAControlApp() {
 
     const [status, setStatus] = useState({ running: false, pid: null, via: "" });
     const [busy, setBusy] = useState(false);
-    const [sessionName, setSessionName] = useState("My ASA Server");
-    const [mods, setMods] = useState("123456,987654");
+    const [sessionName, setSessionName] = useState("MyASAServer");
+    const [mods, setMods] = useState("929578,953154,934231,1061361");
     const [noBE, setNoBE] = useState(true);
     const [rconCmd, setRconCmd] = useState("");
     const [toast, setToast] = useState("");
