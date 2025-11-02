@@ -23,7 +23,7 @@ export default function ASAControlApp() {
 
     const [status, setStatus] = useState({ running: false, pid: null, via: "" });
     const [busy, setBusy] = useState(false);
-    const [sessionName, setSessionName] = useState("MyASAServer");
+    const [sessionName, setSessionName] = useState("ArkAscendedDM");
     const [mods, setMods] = useState("929578,953154,934231,1061361");
     const [serverPassword, setServerPassword] = useState(DEFAULT_SERVER_PASSWORD);
     const [adminPassword, setAdminPassword] = useState(DEFAULT_ADMIN_PASSWORD);
