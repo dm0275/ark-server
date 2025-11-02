@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 # --------------------
@@ -18,6 +18,12 @@ class StartBody(BaseModel):
     NoBattlEye: Optional[bool] = None
     Mods: Optional[list[str]] = None  # ["123","456"] or pass strings and split in React
     ExtraArgs: Optional[list[str]] = None
+
+    @field_validator("Mods", mode="before")
+    def _coerce_mods(cls, v):
+        if isinstance(v, str):
+            return [part.strip() for part in v.split(",") if part.strip()]
+        return v
 
 class StopBody(BaseModel):
     # Optional: override RCON creds at call-time (usually not needed)
