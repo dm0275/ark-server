@@ -98,7 +98,7 @@ export default function ASAControlApp() {
 
     useEffect(() => {
         refresh();
-        const id = setInterval(refresh, 5000);
+        const id = setInterval(refresh, 5 * 60 * 1000);
         return () => clearInterval(id);
     }, []);
 

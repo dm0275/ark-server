@@ -51,15 +51,22 @@ ALLOWED_ORIGINS = [
 ]
 
 LOG_LEVEL = os.getenv("ASA_LOG_LEVEL", "INFO").upper()
-if not logging.getLogger().handlers:
+root_logger = logging.getLogger()
+if not root_logger.handlers:
     logging.basicConfig(
         level=LOG_LEVEL,
         format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
     )
 else:
-    logging.getLogger().setLevel(LOG_LEVEL)
+    root_logger.setLevel(LOG_LEVEL)
 
 logger = logging.getLogger("asa.server")
+logger.setLevel(LOG_LEVEL)
+if not logger.handlers:
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s"))
+    logger.addHandler(stream_handler)
+logger.propagate = True
 
 app.add_middleware(
     CORSMiddleware,
@@ -74,6 +81,7 @@ app.add_middleware(
 async def log_requests(request: Request, call_next):
     start = perf_counter()
     client = request.client.host if request.client else "-"
+    logger.debug("HTTP %s %s from %s received", request.method, request.url.path, client)
     try:
         response = await call_next(request)
     except Exception:
@@ -262,6 +270,7 @@ def stop_server(body: StopBody, x_api_key: Optional[str] = Header(default=None))
 @app.get("/status")
 def status(x_api_key: Optional[str] = Header(default=None)):
     require_key(x_api_key)
+    logger.debug("Status polled (running=%s, pid=%s)", proc.is_running(), proc.pid())
     return {"running": proc.is_running(), "pid": proc.pid()}
 
 @app.post("/restart")
