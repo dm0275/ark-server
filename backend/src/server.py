@@ -13,7 +13,7 @@ from subprocess import Popen
 from fastapi import FastAPI, Header, HTTPException
 from rcon.source import Client as RconClient
 
-from schemas import StartBody, StopBody
+from src.schemas import StartBody, StopBody
 
 app = FastAPI(title="ASA Control API")
 
