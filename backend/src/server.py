@@ -13,6 +13,7 @@ from time import perf_counter
 from typing import Any, Optional
 
 from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from rcon.source import Client as RconClient
 
 from src.schemas import StartBody, StopBody
@@ -22,7 +23,7 @@ app = FastAPI(title="ASA Control API")
 # --------------------
 # Config (env overrides)
 # --------------------
-API_KEY = os.getenv("ASA_API_KEY", "change-me")  # simple auth for your React app
+API_KEY = os.getenv("ASA_API_KEY", "supersecret")  # simple auth for your React app
 WORKING_DIR = Path(os.getenv("ASA_WORKING_DIR", r"C:\arkascendedserver\ShooterGame\Binaries\Win64"))
 EXE_PATH = WORKING_DIR / "ArkAscendedServer.exe"
 
@@ -43,6 +44,11 @@ DEFAULTS: dict[str, Any] = {
 
 # RCON config (must match server settings)
 RCON_HOST = os.getenv("ASA_RCON_HOST", "127.0.0.1")
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("ASA_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
 
 LOG_LEVEL = os.getenv("ASA_LOG_LEVEL", "INFO").upper()
 if not logging.getLogger().handlers:
@@ -54,6 +60,14 @@ else:
     logging.getLogger().setLevel(LOG_LEVEL)
 
 logger = logging.getLogger("asa.server")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS if ALLOWED_ORIGINS else ["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=False,
+)
 
 
 @app.middleware("http")
