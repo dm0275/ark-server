@@ -10,7 +10,7 @@ installs dependencies if requested, and launches uvicorn pointing at src.server:
 .PARAMETER RepoRoot
 Root of the repository that contains the backend project. Defaults to script root/..
 
-.PARAMETER Host
+.PARAMETER BindHost
 Host interface for uvicorn to bind. Defaults to 0.0.0.0.
 
 .PARAMETER Port
@@ -27,7 +27,7 @@ Additional arguments passed to uvicorn.
 #>
 param(
   [string]$RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path,
-  [string]$Host = "0.0.0.0",
+  [string]$BindHost = "0.0.0.0",
   [int]$Port = 8000,
   [switch]$Reload,
   [switch]$SkipInstall,
@@ -82,7 +82,7 @@ if (-not $SkipInstall -and (Test-Path -LiteralPath $requirements)) {
 $uvicornArgs = @(
   "-m", "uvicorn",
   "src.server:app",
-  "--host", $Host,
+  "--host", $BindHost,
   "--port", $Port
 )
 
