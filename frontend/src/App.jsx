@@ -124,7 +124,6 @@ export default function ASAControlApp() {
         <div className="page">
             <header className="header">
                 <h1>ASA Server Control</h1>
-                <p className="subtle">API: {API}</p>
             </header>
 
             {/* Status */}
