@@ -84,7 +84,10 @@ function Get-CommandPath {
   )
 
   $cmd = Get-Command $CommandName -ErrorAction SilentlyContinue
-  return if ($cmd) { $cmd.Source } else { $null }
+  if ($cmd) {
+    return $cmd.Source
+  }
+  return $null
 }
 
 Assert-Admin
