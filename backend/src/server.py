@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 import os
 import shlex
 import signal
 import subprocess
 import sys
+from contextlib import suppress
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
+from subprocess import Popen
 
 from fastapi import FastAPI, Header, HTTPException
 from rcon.source import Client as RconClient
 
-from src.schemas import StartBody, StopBody
+from schemas import StartBody, StopBody
 
 app = FastAPI(title="ASA Control API")
 
@@ -17,11 +21,11 @@ app = FastAPI(title="ASA Control API")
 # Config (env overrides)
 # --------------------
 API_KEY = os.getenv("ASA_API_KEY", "change-me")  # simple auth for your React app
-WORKING_DIR = Path(os.getenv("ASA_WORKING_DIR", r"E:\arkascendedserver\ShooterGame\Binaries\Win64"))
+WORKING_DIR = Path(os.getenv("ASA_WORKING_DIR", r"C:\arkascendedserver\ShooterGame\Binaries\Win64"))
 EXE_PATH = WORKING_DIR / "ArkAscendedServer.exe"
 
 # Defaults (can be overridden by /start body)
-DEFAULTS = {
+DEFAULTS: dict[str, Any] = {
     "Map": "TheIsland_WP",
     "SessionName": "My ASA Server",
     "MaxPlayers": 16,
@@ -43,13 +47,21 @@ RCON_HOST = os.getenv("ASA_RCON_HOST", "127.0.0.1")
 # --------------------
 class ServerProcess:
     def __init__(self) -> None:
-        self._p: Optional[subprocess.Popen] = None
+        self._p: Popen[bytes] | None = None
+
+    def _ensure_proc(self) -> Popen[bytes]:
+        proc = self._p
+        if proc is None:
+            raise RuntimeError("Server process not running")
+        return proc
 
     def is_running(self) -> bool:
-        return self._p is not None and (self._p.poll() is None)
+        proc = self._p
+        return proc is not None and (proc.poll() is None)
 
     def pid(self) -> Optional[int]:
-        return self._p.pid if self.is_running() else None
+        proc = self._p
+        return proc.pid if proc is not None and proc.poll() is None else None
 
     def start(self, args: list[str]) -> None:
         if self.is_running():
@@ -66,23 +78,22 @@ class ServerProcess:
             cwd=str(WORKING_DIR),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.STDOUT,
-            creationflags=creationflags
+            creationflags=creationflags,
         )
 
     def kill(self) -> None:
         if not self.is_running():
             return
+        proc = self._ensure_proc()
         try:
             if sys.platform == "win32":
-                self._p.send_signal(signal.CTRL_BREAK_EVENT)  # graceful-ish
-            self._p.terminate()
+                proc.send_signal(signal.CTRL_BREAK_EVENT)  # graceful-ish
+            proc.terminate()
         except Exception:
             pass
         finally:
-            try:
-                self._p.kill()
-            except Exception:
-                pass
+            with suppress(Exception):
+                proc.kill()
             self._p = None
 
 proc = ServerProcess()
@@ -149,8 +160,8 @@ def start_server(body: StartBody, x_api_key: Optional[str] = Header(default=None
         raise HTTPException(status_code=409, detail=f"Server already running (pid={proc.pid()})")
 
     # merge defaults with body
-    cfg = DEFAULTS.copy()
-    for k, v in body.dict(exclude_none=True).items():
+    cfg: dict[str, Any] = DEFAULTS.copy()
+    for k, v in body.model_dump(exclude_none=True).items():
         cfg[k] = v
 
     args = build_args(
