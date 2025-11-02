@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import shlex
 import signal
@@ -7,10 +8,11 @@ import subprocess
 import sys
 from contextlib import suppress
 from pathlib import Path
-from typing import Any, Optional
 from subprocess import Popen
+from time import perf_counter
+from typing import Any, Optional
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from rcon.source import Client as RconClient
 
 from src.schemas import StartBody, StopBody
@@ -41,6 +43,46 @@ DEFAULTS: dict[str, Any] = {
 
 # RCON config (must match server settings)
 RCON_HOST = os.getenv("ASA_RCON_HOST", "127.0.0.1")
+
+LOG_LEVEL = os.getenv("ASA_LOG_LEVEL", "INFO").upper()
+if not logging.getLogger().handlers:
+    logging.basicConfig(
+        level=LOG_LEVEL,
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+    )
+else:
+    logging.getLogger().setLevel(LOG_LEVEL)
+
+logger = logging.getLogger("asa.server")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = perf_counter()
+    client = request.client.host if request.client else "-"
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = (perf_counter() - start) * 1000
+        logger.exception(
+            "HTTP %s %s from %s failed after %.2f ms",
+            request.method,
+            request.url.path,
+            client,
+            duration_ms,
+        )
+        raise
+
+    duration_ms = (perf_counter() - start) * 1000
+    logger.info(
+        "HTTP %s %s from %s -> %s (%.2f ms)",
+        request.method,
+        request.url.path,
+        client,
+        response.status_code,
+        duration_ms,
+    )
+    return response
 
 # --------------------
 # Simple process holder

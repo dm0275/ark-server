@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./app.css";
 
 export default function ASAControlApp() {
-    const API = import.meta.env.VITE_ASA_API_URL || "http://localhost:3001";
+    const API = import.meta.env.VITE_ASA_API_URL || "http://localhost:8000";
     const API_KEY = import.meta.env.VITE_ASA_API_KEY || "supersecret";
 
     const headers = useMemo(
