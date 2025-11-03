@@ -192,7 +192,7 @@ function Start-Frontend {
   Clear-Pid -Name $name
 
   $frontendDir = Join-Path $RepoRoot "frontend"
-  Write-Host "Starting frontend (npm run dev)..."
+  Write-Host "Starting frontend (npm run start)..."
   $proc = Start-Process -FilePath "npm.cmd" -ArgumentList @("run","start") -WorkingDirectory $frontendDir -WindowStyle Hidden -PassThru
   Write-Pid -Name $name -ProcessId $proc.Id
   Write-Host "Frontend started (pid $($proc.Id))."

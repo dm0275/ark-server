@@ -13,8 +13,8 @@ await mkdir(stateDir, { recursive: true });
 
 const pidFile = join(stateDir, "frontend-dev.pid");
 
-const command = process.platform === "win32" ? "npx.cmd" : "npx";
-const args = ["vite", "--host", "0.0.0.0", ...process.argv.slice(2)];
+const command = process.platform === "win32" ? "npm.cmd" : "npm";
+const args = ["run", "dev", "--", "--host", "0.0.0.0", ...process.argv.slice(2)];
 
 const child = spawn(command, args, {
   cwd: frontendDir,
