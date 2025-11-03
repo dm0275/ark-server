@@ -21,3 +21,11 @@ ASA_LOG_LEVEL=INFO
 Environment variables still take precedence over values in the files (for
 example anything injected by your service manager). Update `backend/requirements.txt`
 and reinstall dependencies if you add new packages.
+
+### Runtime state
+
+When the backend launches or stops the ASA server binary it records the
+process id in `.run/ark-server.pid` (relative to the repository root). This
+allows the API to detect an already running server after a restart. If you
+manually stop the binary outside of the API, delete the pid file so the backend
+does not treat the server as active.

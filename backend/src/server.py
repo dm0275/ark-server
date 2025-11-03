@@ -16,6 +16,7 @@ from typing import Any, Optional
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from rcon.source import Client as RconClient
+import psutil
 from dotenv import load_dotenv
 from src.schemas import StartBody, StopBody
 
@@ -92,6 +93,10 @@ logger = logging.getLogger("asa.server")
 logger.setLevel(LOG_LEVEL)
 logger.propagate = True
 
+STATE_DIR = ROOT_DIR / ".run"
+STATE_DIR.mkdir(parents=True, exist_ok=True)
+SERVER_PID_FILE = STATE_DIR / "ark-server.pid"
+
 cors_kwargs: dict[str, Any] = {
     "allow_methods": ["*"],
     "allow_headers": ["*"],
@@ -144,6 +149,36 @@ async def log_requests(request: Request, call_next):
 class ServerProcess:
     def __init__(self) -> None:
         self._p: Popen[bytes] | None = None
+        self._pid: Optional[int] = self._load_pid()
+        if self._pid is not None and not self._process_alive(self._pid):
+            self._clear_pid_file()
+            self._pid = None
+
+    @staticmethod
+    def _process_alive(pid: int) -> bool:
+        try:
+            return psutil.pid_exists(pid)
+        except Exception:
+            return False
+
+    @staticmethod
+    def _load_pid() -> Optional[int]:
+        try:
+            data = SERVER_PID_FILE.read_text(encoding="ascii").strip()
+            if data:
+                return int(data)
+        except (FileNotFoundError, ValueError):
+            return None
+        return None
+
+    @staticmethod
+    def _write_pid(pid: int) -> None:
+        SERVER_PID_FILE.write_text(str(pid), encoding="ascii")
+
+    @staticmethod
+    def _clear_pid_file() -> None:
+        with suppress(FileNotFoundError):
+            SERVER_PID_FILE.unlink()
 
     def _ensure_proc(self) -> Popen[bytes]:
         proc = self._p
@@ -153,11 +188,22 @@ class ServerProcess:
 
     def is_running(self) -> bool:
         proc = self._p
-        return proc is not None and (proc.poll() is None)
+        if proc is not None and proc.poll() is None:
+            return True
+        if self._pid is None:
+            return False
+        if self._process_alive(self._pid):
+            return True
+        self._clear_pid_file()
+        self._pid = None
+        return False
 
     def pid(self) -> Optional[int]:
-        proc = self._p
-        return proc.pid if proc is not None and proc.poll() is None else None
+        if self.is_running():
+            if self._p is not None and self._p.poll() is None:
+                self._pid = self._p.pid
+            return self._pid
+        return None
 
     def start(self, args: list[str]) -> None:
         if self.is_running():
@@ -176,21 +222,36 @@ class ServerProcess:
             stderr=subprocess.STDOUT,
             creationflags=creationflags,
         )
+        if self._p.pid is not None:
+            self._pid = self._p.pid
+            self._write_pid(self._pid)
 
     def kill(self) -> None:
         if not self.is_running():
             return
-        proc = self._ensure_proc()
         try:
-            if sys.platform == "win32":
-                proc.send_signal(signal.CTRL_BREAK_EVENT)  # graceful-ish
-            proc.terminate()
-        except Exception:
-            pass
+            if self._p is not None and self._p.poll() is None:
+                proc = self._ensure_proc()
+                if sys.platform == "win32":
+                    proc.send_signal(signal.CTRL_BREAK_EVENT)  # graceful-ish
+                proc.terminate()
+                with suppress(Exception):
+                    proc.kill()
+            elif self._pid is not None:
+                try:
+                    ps_proc = psutil.Process(self._pid)
+                    if sys.platform == "win32":
+                        with suppress(Exception):
+                            ps_proc.send_signal(signal.CTRL_BREAK_EVENT)  # type: ignore[arg-type]
+                    ps_proc.terminate()
+                    with suppress(Exception):
+                        ps_proc.kill()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
         finally:
-            with suppress(Exception):
-                proc.kill()
             self._p = None
+            self._pid = None
+            self._clear_pid_file()
 
 proc = ServerProcess()
 
