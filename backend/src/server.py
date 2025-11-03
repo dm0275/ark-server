@@ -16,8 +16,13 @@ from typing import Any, Optional
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from rcon.source import Client as RconClient
-
+from dotenv import load_dotenv
 from src.schemas import StartBody, StopBody
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+ROOT_DIR = BACKEND_DIR.parent
+load_dotenv(dotenv_path=BACKEND_DIR / ".env", override=False)
+load_dotenv(dotenv_path=BACKEND_DIR / ".env.local", override=False)
 
 app = FastAPI(title="ASA Control API")
 
@@ -68,7 +73,7 @@ else:
         if isinstance(handler, logging.StreamHandler):
             handler.setFormatter(logging.Formatter(LOG_FORMAT))
 
-log_dir_default = Path(__file__).resolve().parents[2] / "logs"
+log_dir_default = ROOT_DIR / "logs"
 LOG_DIR = Path(os.getenv("ASA_LOG_DIR", str(log_dir_default)))
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 log_file = LOG_DIR / "backend.log"
