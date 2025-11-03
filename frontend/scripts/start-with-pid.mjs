@@ -14,15 +14,13 @@ await mkdir(stateDir, { recursive: true });
 
 const pidFile = join(stateDir, "frontend-dev.pid");
 
-const require = createRequire(import.meta.url);
-const viteBin = require.resolve("vite/bin/vite.js");
-
-const command = process.execPath;
-const args = [viteBin, "--host", "0.0.0.0", ...process.argv.slice(2)];
+const command = process.platform === "win32" ? "npm.cmd" : "npm";
+const args = ["run", "dev", "--", "--host", "0.0.0.0", ...process.argv.slice(2)];
 
 const child = spawn(command, args, {
   cwd: frontendDir,
   stdio: "inherit",
+  shell: process.platform === "win32",
 });
 
 await writeFile(pidFile, String(child.pid), { encoding: "utf8" });
