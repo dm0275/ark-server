@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import logging
 import os
 import shlex
@@ -13,11 +14,12 @@ from subprocess import Popen
 from time import perf_counter
 from typing import Any, Optional
 
+import psutil
+from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from rcon.source import Client as RconClient
-import psutil
-from dotenv import load_dotenv
+
 from src.schemas import StartBody, StopBody
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -96,6 +98,22 @@ logger.propagate = True
 STATE_DIR = ROOT_DIR / ".run"
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 SERVER_PID_FILE = STATE_DIR / "ark-server.pid"
+API_PID_FILE = STATE_DIR / "backend-api.pid"
+
+def _write_api_pid() -> None:
+    try:
+        API_PID_FILE.write_text(str(os.getpid()), encoding="ascii")
+    except OSError:
+        logging.getLogger("asa.server").warning("Unable to write backend pid file at %s", API_PID_FILE)
+
+
+def _clear_api_pid() -> None:
+    with suppress(FileNotFoundError):
+        API_PID_FILE.unlink()
+
+
+_write_api_pid()
+atexit.register(_clear_api_pid)
 
 cors_kwargs: dict[str, Any] = {
     "allow_methods": ["*"],
