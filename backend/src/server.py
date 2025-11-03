@@ -8,6 +8,7 @@ import subprocess
 import sys
 from contextlib import suppress
 from pathlib import Path
+from logging.handlers import TimedRotatingFileHandler
 from subprocess import Popen
 from time import perf_counter
 from typing import Any, Optional
@@ -54,21 +55,36 @@ ALLOWED_ORIGIN_REGEX = os.getenv("ASA_ALLOWED_ORIGIN_REGEX", "")
 ALLOW_ALL_ORIGINS = os.getenv("ASA_ALLOW_ALL_ORIGINS", "").lower() in {"1", "true", "yes"}
 
 LOG_LEVEL = os.getenv("ASA_LOG_LEVEL", "INFO").upper()
+LOG_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 root_logger = logging.getLogger()
-if not root_logger.handlers:
-    logging.basicConfig(
-        level=LOG_LEVEL,
-        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-    )
+root_logger.setLevel(LOG_LEVEL)
+
+if not any(isinstance(h, logging.StreamHandler) for h in root_logger.handlers):
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    root_logger.addHandler(stream_handler)
 else:
-    root_logger.setLevel(LOG_LEVEL)
+    for handler in root_logger.handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+log_dir_default = Path(__file__).resolve().parents[2] / "logs"
+LOG_DIR = Path(os.getenv("ASA_LOG_DIR", str(log_dir_default)))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+log_file = LOG_DIR / "backend.log"
+
+if not any(isinstance(h, TimedRotatingFileHandler) for h in root_logger.handlers):
+    file_handler = TimedRotatingFileHandler(
+        log_file,
+        when="midnight",
+        backupCount=1,
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    root_logger.addHandler(file_handler)
 
 logger = logging.getLogger("asa.server")
 logger.setLevel(LOG_LEVEL)
-if not logger.handlers:
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s"))
-    logger.addHandler(stream_handler)
 logger.propagate = True
 
 cors_kwargs: dict[str, Any] = {
