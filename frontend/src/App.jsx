@@ -107,6 +107,12 @@ export default function ASAControlApp() {
         return () => clearInterval(id);
     }, []);
 
+    useEffect(() => {
+        if (!toast) return;
+        const timer = setTimeout(() => setToast(""), 5000);
+        return () => clearTimeout(timer);
+    }, [toast]);
+
     return (
         <div className="page">
             <header className="header">
