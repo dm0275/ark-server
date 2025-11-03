@@ -16,6 +16,8 @@ ASA_ALLOWED_ORIGINS=http://localhost:3000
 ASA_ALLOW_ALL_ORIGINS=false
 ASA_LOG_DIR=C:\ark-server-logs
 ASA_LOG_LEVEL=INFO
+ASA_SERVER_PASSWORD=
+ASA_SERVER_ADMIN_PASSWORD=ChangeMeAdmin!
 ```
 
 Environment variables still take precedence over values in the files (for

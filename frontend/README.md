@@ -12,12 +12,6 @@ VITE_ASA_API_URL=http://192.168.1.40:8000
 
 # API key that must match backend ASA_API_KEY
 VITE_ASA_API_KEY=supersecret
-
-# Optional: default server password to prefill in the UI (empty = none)
-VITE_ASA_SERVER_PASSWORD=
-
-# Optional: default admin password to prefill in the UI
-VITE_ASA_ADMIN_PASSWORD=ChangeMeAdmin!
 ```
 
 After setting the values, restart `npm run dev` so Vite picks them up. These env vars can also be supplied via your deployment platform.

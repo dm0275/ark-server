@@ -35,6 +35,8 @@ app = FastAPI(title="ASA Control API")
 API_KEY = os.getenv("ASA_API_KEY", "supersecret")  # simple auth for your React app
 WORKING_DIR = Path(os.getenv("ASA_WORKING_DIR", r"C:\arkascendedserver\ShooterGame\Binaries\Win64"))
 EXE_PATH = WORKING_DIR / "ArkAscendedServer.exe"
+SERVER_PASSWORD_DEFAULT = os.getenv("ASA_SERVER_PASSWORD", "")
+SERVER_ADMIN_PASSWORD_DEFAULT = os.getenv("ASA_SERVER_ADMIN_PASSWORD", "ChangeMeAdmin!")
 
 # Defaults (can be overridden by /start body)
 DEFAULTS: dict[str, Any] = {
@@ -44,8 +46,8 @@ DEFAULTS: dict[str, Any] = {
     "GamePort": 7777,
     "QueryPort": 27015,
     "RCONPort": 27020,  # set to None to omit
-    "ServerPassword": "",
-    "ServerAdminPassword": "ChangeMeAdmin!",
+    "ServerPassword": SERVER_PASSWORD_DEFAULT,
+    "ServerAdminPassword": SERVER_ADMIN_PASSWORD_DEFAULT,
     "NoBattlEye": True,
     "Mods": [],  # e.g. ["123", "456"]
     "ExtraArgs": ["-server", "-log"],
