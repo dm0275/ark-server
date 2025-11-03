@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mkdir, writeFile, rm } from "node:fs/promises";
+import { createRequire } from "node:module";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const frontendDir = join(__dirname, "..");
@@ -13,8 +14,11 @@ await mkdir(stateDir, { recursive: true });
 
 const pidFile = join(stateDir, "frontend-dev.pid");
 
-const command = process.platform === "win32" ? "npm.cmd" : "npm";
-const args = ["run", "dev", "--", "--host", "0.0.0.0", ...process.argv.slice(2)];
+const require = createRequire(import.meta.url);
+const viteBin = require.resolve("vite/bin/vite.js");
+
+const command = process.execPath;
+const args = [viteBin, "--host", "0.0.0.0", ...process.argv.slice(2)];
 
 const child = spawn(command, args, {
   cwd: frontendDir,
