@@ -132,15 +132,15 @@ function Test-PrimaryProcessAlive {
 
 function Stop-PrimaryProcess {
   param([Parameter(Mandatory)][string]$Name)
-  $pid = Read-PrimaryPid -Name $Name
-  if (-not $pid) { return $false }
-  if (-not (Test-ProcessAlive -ProcessId $pid)) { return $false }
+  $primaryProcessId = Read-PrimaryPid -Name $Name
+  if (-not $primaryProcessId) { return $false }
+  if (-not (Test-ProcessAlive -ProcessId $primaryProcessId)) { return $false }
 
-  Write-Host "Stopping $Name (primary pid $pid)..."
+  Write-Host "Stopping $Name (primary pid $primaryProcessId)..."
   try {
-    Stop-Process -Id $pid -Force -ErrorAction Stop
+    Stop-Process -Id $primaryProcessId -Force -ErrorAction Stop
   } catch {
-    Write-Warning "Failed to stop $Name primary process (pid $pid): $($_.Exception.Message)"
+    Write-Warning "Failed to stop $Name primary process (pid $primaryProcessId): $($_.Exception.Message)"
     return $false
   }
   Start-Sleep -Milliseconds 200
